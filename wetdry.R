@@ -1,3 +1,7 @@
+# install.packages("tidyverse")
+# install.packages("lubridate")
+# install.packages("padr")
+# install.packages("openxlsx")
 library(tidyverse)
 library(lubridate)
 library(padr)
@@ -5,7 +9,8 @@ library(openxlsx)
 ## if packages are not already installed, install using install.packages("[packagename]")
 
 ## CT precipitation dataset
-df <- read.csv("All_CT_precip_data_2000_2021.csv")
+## All precip for all dates at all stations btwn 2000-2021
+df <- read.csv("Stations_CT_precip_data_2000_2023.csv")
 
 ## use only the main 23 data stations
 ## completing the time frame date sequence (all dates in 2000-2021)
@@ -13,31 +18,31 @@ df <- read.csv("All_CT_precip_data_2000_2021.csv")
 df_work <- df %>% 
   mutate(DATE = as.Date(DATE)) %>% #change date column to date format
   group_by(STATION) %>%
-  filter(STATION %in% c(
-    "USC00060973",
-    "USW00094702",
-    "USC00067958",
-    "USC00067970",
-    "USC00061762",
-    "USW00014707",
-    "USC00069388",
-    "USC00065910",
-    "USW00014740",
-    "USC00062658",
-    "USC00060128",
-    "USW00054788",
-    "USW00054767",
-    "USC00060227",
-    "USC00060299",
-    "USC00063207",
-    "USC00063420",
-    "USC00065445",
-    "USC00066655",
-    "USC00067432",
-    "USC00068138",
-    "USW00014752",
-    "USW00054734"
-  )) %>% 
+  # filter(STATION %in% c(
+  #   "USC00060973",
+  #   "USW00094702",
+  #   "USC00067958",
+  #   "USC00067970",
+  #   "USC00061762",
+  #   "USW00014707",
+  #   "USC00069388",
+  #   "USC00065910",
+  #   "USW00014740",
+  #   "USC00062658",
+  #   "USC00060128",
+  #   "USW00054788",
+  #   "USW00054767",
+  #   "USC00060227",
+  #   "USC00060299",
+  #   "USC00063207",
+  #   "USC00063420",
+  #   "USC00065445",
+  #   "USC00066655",
+  #   "USC00067432",
+  #   "USC00068138",
+  #   "USW00014752",
+  #   "USW00054734"
+  # )) %>%
   pad(group = "STATION") #add rows in where there are missing dates
 
 
@@ -83,7 +88,8 @@ wet_dry <- df_work_fill %>%
 
 
 ## write the wet/dry csv
-# write.csv(wet_dry, "WetDryAnalysis_CT_dataset_v2.csv")
+write.csv(wet_dry, "WetDryAnalysis_CT_dataset_2000_2023.csv")
+# write.csv(df_summary, "Precip_Difference_BDL.csv")
 
 
 

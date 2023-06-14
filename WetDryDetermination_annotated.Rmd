@@ -1,0 +1,264 @@
+---
+title: "Wet Dry Determination -- Annotated"
+date: "June 2023"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Welcome! 
+
+This is the annoted version of the wet/dry R analysis. This will walk you through the R script that will pull in the CT precipitation dataset and run through the determination of a wet or dry condition day. 
+
+* Side note: When starting a new R project, I do not start with a new script but instead with a new R project (see *file>new file>R script* versus *file>new project*). The R project creates a home folder for the project which you can store all of your scripts and datasets to make them very easily accessible when running the scripts. We will be working out of an R project here. 
+
+To run the R scripts for this project, you should navigate here: 
+
+* *(PSShare)Q:\\Water Quality Group\\R Projects\\WetDryDetermination*
+
+Then double click on the *WetDryDetermination.Rproj* project. That should open up R studio. In the right hand side bottom panel, click the "files" tab. That will show you all of the files available for this project. When you add datasets to this folder, they will show up in this tab.
+
+This project is also hosted on the [Water Quality GitHub](https://github.com/ctdeepwaterquality/WetDryDetermination) page.
+
+All of the code chunks seen in this document are directly from the wetdry.R script that is in the project folder. Comments start with a # in the line, and are not run in the code. 
+\
+\
+\
+
+##### Step 1: Download and install R & RStudio.
+
+R is the actual programming language. R Studio is the user interface program that makes coding in R beautiful, smooth, and easy. 
+
+If you already have these -- yay! You are all set. Move on. 
+
+If you do not, download and install BOTH here:
+
+* [R language](https://cran.r-project.org/bin/windows/base/)
+
+* [Rstudio](https://posit.co/products/open-source/rstudio/)
+
+If those links are out of date, just google "R studio download" and "R language download". If you cannot install things onto your own computer, contact IT. 
+\
+\
+\
+
+##### Step 2: Obtain CT precipitation data through NOAA.
+
+We need to have CT precipitation data from the year 2000 to the current date. This is a large amount of data. In 2021, we were able to email the people at NOAA to request a very large dataset to be pulled & sent, but as of 2023 the servers have been changed and large data quereies like that are unavailable.
+
+To extract precipitation datasets, you will use the [NOAA Climate Data Online](https://www.ncdc.noaa.gov/cdo-web/) website. From here, you will need to do a search for stations (6 stations at a time) and export a dataset. For full instructions, please see the document "*CT Wet and Dry Condition Determination_Process*" in this file location:
+
+* *Q:\\Water Quality Group\\RESOURCES\\_TOOLS\\CT Wet and Dry Condition Determination*
+
+Once the dataset (including 23 stations, from 01-01-2000 to the current date) is downloaded, save as a .csv file in this (*(PSShare)Q:\Water Quality Group\R Projects\WetDryDetermination*) folder (or in the project folder that you have the R script, if it's been moved or copied). Open the new .csv file (in R or Excel) and make sure it has the correct columns. The columns should be the following:
+
+    STATION, NAME, LATITUDE, LONGITUDE, DATE, PRCP
+
+It's ok if there are extra columns, they will be removed later in the process.
+
+If you don't want to have to edit the script, it is **very** important that the data has these columns using these names (case sensitive!) in order to run the script in the same exact way. But if you do want to edit the script, then this less important -- just make sure you are editing the column names in the script along the way.
+\
+\
+\
+
+##### Step 3: Install/load necessary packages.
+
+Packages are important for creating and running R scripts. They are basically just a bundle of functions someone else made that allows for easier data manipulation, analysis, or coding. R functions are similar in nature to Excel functions (i.e. when you write sum() or vlookup() for a block of cells).
+
+Once you load the packages, you will be able to use the whole library of functions for the script. In this script, there are already a few packages being used, so their libraries need to be loaded. 
+
+```{r eval=FALSE}
+# install.packages("tidyverse")
+# install.packages("lubridate")
+# install.packages("padr")
+# install.packages("openxlsx")
+library(tidyverse)
+library(lubridate)
+library(padr)
+library(openxlsx)
+## if packages are not already installed, install using install.packages("[packagename]")
+```
+
+As commented in the script, these packages might not be installed to your computer yet. You will need to install them. Delete the # at the beginning of the first four lines to install the packages. Then run the library() function after. Now these packages are activated!
+
+Side note: Sometimes the state computers/network can't download things without permission (you should know if you are esaily able to download application, or if you need to usually go through IT). You can only install packages if you are using a laptop or something that is NOT on the VDI/thin clients. So, if you try to install packages and run into problems with permissions, you will need to reach out to IT to get the packages installed for your computer.
+\
+\
+\
+
+##### Step 4: Read in the precipitation data.
+```{r eval=FALSE}
+## CT precipitation dataset
+## All precip for all dates at all stations btwn 2000-2021
+df <- read.csv("Stations_CT_precip_data_2000_2023.csv")
+```
+
+Straightforward. Reading in the precipitation data that you downloaded and triple-checked the formatting on :). You are saving it as an object names "df" (short for Data Frame). You will see this come up in the top right box in the "environment" tab.
+
+Depending on the name of the .csv file in the project folder, you may need to edit the file name in the script to match the most recent dataset. Make sure to write ".csv" at the end of the file name.
+\
+\
+\
+
+##### Step 5: Transform and subset the data
+
+```{r eval=FALSE}
+## use only the main 23 data stations
+## completing the time frame date sequence (all dates in 2000-2021)
+## adding rows where missing dates
+
+df_work <- df %>% 
+  mutate(DATE = as.Date(DATE)) %>% #change date column to date format
+  group_by(STATION) %>%
+  # filter(STATION %in% c(
+  #   "USC00060973",
+  #   "USW00094702",
+  #   "USC00067958",
+  #   "USC00067970",
+  #   "USC00061762",
+  #   "USW00014707",
+  #   "USC00069388",
+  #   "USC00065910",
+  #   "USW00014740",
+  #   "USC00062658",
+  #   "USC00060128",
+  #   "USW00054788",
+  #   "USW00054767",
+  #   "USC00060227",
+  #   "USC00060299",
+  #   "USC00063207",
+  #   "USC00063420",
+  #   "USC00065445",
+  #   "USC00066655",
+  #   "USC00067432",
+  #   "USC00068138",
+  #   "USW00014752",
+  #   "USW00054734"
+  # )) %>% 
+  pad(group = "STATION") #add rows in where there are missing dates
+```
+
+This chunk of code accomplishes three things: 
+
+1. Set the "date" column in a date format that R can recognize
+2. ONLY APPLICABLE IF USING A FULL CT PRECIP DATASET: Subset the 23 stations that have the most complete precipitation datasets. Need to delete the # to uncomment the lines so they will run.
+    + If your precipitation dataset is already subsetted to these 23 stations (the 2023 updated dataset is in this format), then you not need to run those lines. Leave the #'s so these lines do not run.
+3. Add new empty rows where there are dates with precipitation data missing
+
+Saves as a new object called "df_work".
+\
+\
+\
+
+##### Step 6: Create data frame for just Bradley Airport station precipitation data.
+
+```{r eval=FALSE}
+## dataset for only Bradley data
+bdl <- df_work %>% 
+  filter(STATION == "USW00014740") %>% 
+  select(1:4,6:7)
+```
+
+We will use this to fill in data gaps in the next steps.
+\
+\
+\
+
+##### Step 7: Fill data gaps with Bradley Airport station precipitation data.
+
+```{r eval=FALSE}
+## fill in all the blank gaps from other stations with BDL data
+df_work_fill <- df_work %>% 
+  select(1:7) %>% 
+  left_join(bdl, by = c("DATE")) %>% 
+  mutate(PRCP = coalesce(PRCP.x, PRCP.y), # if there is an NA for a date, coalesce fills in the NA with the BDL data
+         STATION = coalesce(STATION.x, STATION.y),
+         NAME = coalesce(NAME.x, NAME.y),
+         LATITUDE = coalesce(LATITUDE.x, LATITUDE.y),
+         LONGITUDE = coalesce(LONGITUDE.x, LONGITUDE.y),
+         difference = PRCP.x-PRCP.y) %>% 
+  select(STATION, NAME, LATITUDE, LONGITUDE, DATE, PRCP, difference)
+```
+
+This takes the working dataframe (df_work) and fills in data gaps with Bradley Airport station data (bdl). It goes through the following steps:
+
+1. Select certain columns.
+2. Perform a left join on the working data frame and Bradley data frame.
+3. Fill in the gaps.
+4. Select only columns we are interested in.
+\
+\
+\
+
+##### Step 8: Analysis of Bradley Airport vs. other stations precipitation data.
+
+```{r eval=FALSE}
+## summary stats of difference btwn bdl station and other stations
+df_summary <- df_work_fill %>% 
+  select(NAME, STATION, difference) %>% 
+  group_by(STATION) %>% 
+  summarise(mean = mean(difference, na.rm=TRUE),
+            median = median(difference, na.rm=TRUE),
+            iqr = IQR(difference, na.rm=TRUE),
+            n = n()) %>% 
+  arrange(mean)
+```
+
+This is a quick and short analysis that looks at the differences between the Bradley Airport station data and the other stations data. This is to prove that the differences are not large, so using the BDL data to fill data gaps is an acceptable approach.
+\
+\
+\
+
+##### Step 9: Make the wet or dry determination for each day. 
+
+```{r eval=FALSE}
+## calculate the wet or dry determination for each date at each station
+wet_dry <- df_work_fill %>%
+  select(-difference) %>% 
+  group_by(STATION) %>% 
+  mutate(prcp_48 = PRCP + lag(PRCP),
+         prcp_72 = PRCP + lag(PRCP) + lag(PRCP, n = 2),
+         prcp_96 = PRCP + lag(PRCP) + lag(PRCP, n = 2) + lag(PRCP, n = 3),
+         wet_dry = ifelse(PRCP >= 0.1 | prcp_48 >= 0.25 | prcp_96 >= 2.0, 
+                          "wet", "dry"))
+```
+
+
+This is the step you've all been waiting for! 
+
+This chunk of code will look at each row (which is a single date at a single station) and create columns to determine if the day should be considered wet or dry at that location. These criteria come from the CT Bacteria TMDL Core Document and (something else that I don't remember). It just calculated the total precipitation for 48 hours prior, 72 hours prior, and 96 hours prior, and through an if-statement, decides if the values line up with a "wet" or "dry" condition day. 
+\
+\
+\
+
+##### Step 10: Export the dataset.
+
+```{r eval=FALSE}
+## write the wet/dry csv
+write.csv(wet_dry, "WetDryAnalysis_CT_dataset_2000_20XX.csv")
+# write.csv(df_summary, "Precip_Difference_BDL.csv")
+
+```
+
+The last step is to write/save the new dataset to this folder. Please edit the name of the file to your liking (probably just adjust the ending year in the name). Try not to overwrite old datasets by saving the file with the same name as something that already exists in the project folder. 
+
+There is also an option to write/save the dataset that calculates summary statistics for the differences between the Bradley Airport precipitation data & the other stations.
+\
+\
+\
+
+That is all! If you've gotten this far, then the dataset is complete and you can move onto the next steps in the process. If you get super stuck, please reach out to me at sarah.hurley@ct.gov.
+
+\
+\
+\
+\
+
+
+
+
+
+
+
